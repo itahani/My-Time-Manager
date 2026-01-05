@@ -1,4 +1,5 @@
 # ⏱️ My Time Manager
+![home](images/homepage.png)
 
 **My Time Manager** is a smart productivity tool designed for anyone who struggles estimating the steps and time needed to achieve a set goal. It transforms vague goals into actionable, time-boxed roadmaps using AI-driven logic.
 
