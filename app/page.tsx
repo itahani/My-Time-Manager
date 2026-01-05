@@ -179,6 +179,10 @@ export default function Home() {
       return prev; // Simplification for demo
     });
   };
+  
+  if (!isClient) {
+    return null; 
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 p-6 md:p-12 text-gray-900">
