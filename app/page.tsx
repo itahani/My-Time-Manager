@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   DndContext, 
-  closestCenter, 
+  rectIntersection,
   KeyboardSensor, 
   PointerSensor, 
   useSensor, 
@@ -46,24 +46,39 @@ function SortableSubTask({ st, stepId, onToggleSubTask, onEditSubTask, onEditTim
 // --- COMPONENT 2: SORTABLE STEP ---
 function SortableStep({ step, onToggleSubTask, onEditSubTask, onEditTime }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
+  
   const totalStepTime = step.subTasks?.reduce((acc: number, curr: any) => acc + (parseInt(curr.time) || 0), 0) || 0;
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+  
+  const style = { 
+    transform: CSS.Transform.toString(transform), 
+    transition, 
+    opacity: isDragging ? 0.3 : 1,
+    position: 'relative' as any,
+    zIndex: isDragging ? 10 : 1 
+  };
 
   return (
     <div ref={setNodeRef} style={style} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-4">
       <div className="flex items-center gap-3 mb-4 border-b border-gray-50 pb-2">
-        <div {...attributes} {...listeners} className="cursor-grab p-1 text-gray-400">⠿</div>
+        <div {...attributes} {...listeners} className="cursor-grab p-1 text-gray-400 hover:text-blue-500 transition-colors">⠿</div>
         <div className="flex-1">
           <h3 className="font-bold text-gray-800">{step.title}</h3>
           <p className="text-[10px] text-gray-400 uppercase font-bold">{totalStepTime} minutes total</p>
         </div>
       </div>
+      
+      
       <div className="space-y-3 ml-8">
-        <SortableContext items={step.subTasks.map((st: any) => st.id)} strategy={verticalListSortingStrategy}>
-          {step.subTasks?.map((st: any) => (
-            <SortableSubTask key={st.id} st={st} stepId={step.id} onToggleSubTask={onToggleSubTask} onEditSubTask={onEditSubTask} onEditTime={onEditTime} />
-          ))}
-        </SortableContext>
+        {!isDragging && (
+          <SortableContext items={step.subTasks.map((st: any) => st.id)} strategy={verticalListSortingStrategy}>
+            {step.subTasks?.map((st: any) => (
+              <SortableSubTask key={st.id} st={st} stepId={step.id} onToggleSubTask={onToggleSubTask} onEditSubTask={onEditSubTask} onEditTime={onEditTime} />
+            ))}
+          </SortableContext>
+        )}
+        {isDragging && step.subTasks?.map((st: any) => (
+           <div key={st.id} className="text-sm text-gray-400">• {st.task}</div>
+        ))}
       </div>
     </div>
   );
@@ -169,17 +184,37 @@ export default function Home() {
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
     setPlan((prev: any) => {
-      const isStep = prev.steps.some((s: any) => s.id === active.id);
-      if (isStep) {
-        const oldIndex = prev.steps.findIndex((s: any) => s.id === active.id);
-        const newIndex = prev.steps.findIndex((s: any) => s.id === over.id);
-        return { ...prev, steps: arrayMove(prev.steps, oldIndex, newIndex) };
+      // 1. Moving a STEP
+      const oldStepIndex = prev.steps.findIndex((s: any) => s.id === active.id);
+      const newStepIndex = prev.steps.findIndex((s: any) => s.id === over.id);
+
+      if (oldStepIndex !== -1 && newStepIndex !== -1) {
+        return { 
+          ...prev, 
+          steps: arrayMove(prev.steps, oldStepIndex, newStepIndex) 
+        };
       }
-      return prev; // Simplification for demo
+
+      // 2. Moving a SUB-TASK
+      const newSteps = prev.steps.map((step: any) => {
+        const oldSubIndex = step.subTasks.findIndex((st: any) => st.id === active.id);
+        const newSubIndex = step.subTasks.findIndex((st: any) => st.id === over.id);
+
+        if (oldSubIndex !== -1 && newSubIndex !== -1) {
+          return {
+            ...step,
+            subTasks: arrayMove(step.subTasks, oldSubIndex, newSubIndex)
+          };
+        }
+        return step;
+      });
+
+      return { ...prev, steps: newSteps };
     });
   };
-  
+
   if (!isClient) {
     return null; 
   }
@@ -245,7 +280,7 @@ export default function Home() {
             )}
 
 
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext sensors={sensors} collisionDetection={rectIntersection} onDragEnd={handleDragEnd}>
               <SortableContext items={plan.steps.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
                 <div className="grid gap-2">
                   {plan.steps.map((step: any) => (
