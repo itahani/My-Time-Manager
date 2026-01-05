@@ -18,8 +18,8 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone <git@github.com:itahani/MyTimeManager.git>
-   cd MyTimeManager
+   git clone <git@github.com:itahani/My-Time-Manager.git>
+   cd My-Time-Manager
 
 2. **Install dependencies:**
    ```bash
